@@ -16,14 +16,30 @@ addons:
 php:
     - 7.1
 
+apt:
+    packages:
+    - php7.1-fpm
+    - nginx
+
+hosts:
+    - dev.security.com
+
+env:
+    global:
+    - WEBSITE_URL="http://dev.security.com"
+    - WEBSITE_DOMAIN="security.com"
+
 install:
-    - git clone --branch trusty --depth=1 https://github.com/rezzza/travis-ci.git ~/.rezzza.travis-ci
-    - ~/.rezzza.travis-ci/php/bootstrap.sh fpm
-    - phpenv rehash
-    - ~/.rezzza.travis-ci/apache/bootstrap.sh 80
-    - ln -s ~/build/rezzza/SecurityBundle/features/bootstrap ~/vhosts/security-bundle.vlr.localtest
+    - sudo cp features/bootstrap/Resources/nginx-conf /etc/nginx/sites-available/$WEBSITE_DOMAIN
+    - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$TRAVIS_BUILD_DIR?g" --in-place /etc/nginx/sites-available/$WEBSITE_DOMAIN
+    - sudo sed -e "s?%SITE_DOMAIN%?$WEBSITE_DOMAIN?g" --in-place /etc/nginx/sites-available/$WEBSITE_DOMAIN
+    - sudo ln -s /etc/nginx/sites-available/$WEBSITE_DOMAIN /etc/nginx/sites-enabled/
     - composer self-update
     - composer install --optimize-autoloader --prefer-dist --no-scripts
+
+before_script:
+    - sudo service php7.1-fpm restart
+    - sudo service nginx restart
 
 script:
     - bin/atoum -ulr
